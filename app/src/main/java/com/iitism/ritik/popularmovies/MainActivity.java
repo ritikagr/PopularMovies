@@ -1,5 +1,6 @@
 package com.iitism.ritik.popularmovies;
 
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -36,10 +37,10 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     private MovieAdapter mGridAdapter = null;
     private ListView mListView;
     private GridView mGridview;
-    private SwipeRefreshLayout mSwipeRefreshLayout;
-    private SwipeRefreshLayout mSwipeRefreshLayoutGrid;
     private String URL = null;
-
+    private int mPage = 1;
+    private int totalPages = 0;
+    private ProgressDialog mPd;
 
     //list=1 or grid=2;
     private int mList_Grid_View = 2;
@@ -50,15 +51,11 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipeRefresh);
-        mSwipeRefreshLayoutGrid = (SwipeRefreshLayout) findViewById(R.id.swipeRefreshGrid);
-        mSwipeRefreshLayout.setOnRefreshListener(this);
-        mSwipeRefreshLayoutGrid.setOnRefreshListener(this);
+        mPd = new ProgressDialog(this);
         final Movie movie[] = new Movie[]{
-
         };
 
-        URL = PopularMovies.BASE_URL + getString(R.string.popular) + PopularMovies.API_KEY;
+        URL = PopularMovies.BASE_URL + getString(R.string.popular) + PopularMovies.API_KEY + PopularMovies.LANG_PAGE;
 
         movieList = Collections.synchronizedList(new ArrayList<Movie>());
 
@@ -67,20 +64,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         mGridview = (GridView) findViewById(R.id.movie_list_grid);
 
         this.setAdapters(mList_Grid_View);
-
-        mSwipeRefreshLayout.post(new Runnable() {
-            @Override
-            public void run() {
-                fetchMovies(URL);
-            }
-        });
-
-        mSwipeRefreshLayoutGrid.post(new Runnable() {
-            @Override
-            public void run() {
-                fetchMovies(URL);
-            }
-        });
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -129,33 +112,34 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     {
         if(viewArrangement == 1)
         {
-            mSwipeRefreshLayout.setVisibility(View.VISIBLE);
-            mSwipeRefreshLayoutGrid.setVisibility(View.GONE);
             mListAdapter = new MovieAdapter(this,R.layout.list_item_layout,movieList);
+            findViewById(R.id.content_main_list).setVisibility(View.VISIBLE);
+            findViewById(R.id.content_main_grid).setVisibility(View.GONE);
             mListView.setAdapter(mListAdapter);
-            mSwipeRefreshLayout.setRefreshing(true);
         }
         else if(viewArrangement == 2)
         {
-            mSwipeRefreshLayout.setVisibility(View.GONE);
-            mSwipeRefreshLayoutGrid.setVisibility(View.VISIBLE);
             mGridAdapter = new MovieAdapter(this,R.layout.list_item_layout_grid, movieList);
+            findViewById(R.id.content_main_list).setVisibility(View.GONE);
+            findViewById(R.id.content_main_grid).setVisibility(View.VISIBLE);
             mGridview.setAdapter(mGridAdapter);
-            mSwipeRefreshLayoutGrid.setRefreshing(true);
         }
         fetchMovies(URL);
     }
 
     public void fetchMovies(String url)
     {
-        if(mList_Grid_View == 1)
-        mSwipeRefreshLayout.setRefreshing(true);
-        else
-        mSwipeRefreshLayoutGrid.setRefreshing(true);
+        url = url + String.valueOf(mPage);
+        Log.i("MainActivity", url);
 
+        mPd.setMessage("Loading...");
+        mPd.setCancelable(false);
+        mPd.setCanceledOnTouchOutside(false);
+        mPd.show();
         StringRequest stringRequest = new StringRequest(url, new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
+                mPd.cancel();
                 showJson(response);
             }
         }, new Response.ErrorListener() {
@@ -167,17 +151,13 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
         RequestQueue requestQueue = Volley.newRequestQueue(this);
         requestQueue.add(stringRequest);
-
-        if(mList_Grid_View == 1)
-            mSwipeRefreshLayout.setRefreshing(false);
-        else
-            mSwipeRefreshLayoutGrid.setRefreshing(false);
     }
 
     public void showJson(String response)
     {
         try {
             JSONObject jsonObject = new JSONObject(response);
+            totalPages = jsonObject.getInt("total_pages");
             JSONArray jsonArray = jsonObject.getJSONArray("results");
             movieList.clear();
             int n = jsonArray.length();
@@ -192,6 +172,21 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 String voteAvg = movieObject.getString("vote_average");
                 String id = movieObject.getString("id");
                 movieList.add(new Movie(poster_path,title,overView,releaseDate,popularity,voteAvg,id));
+                if(mPage>1 && mPage<totalPages)
+                {
+                    findViewById(R.id.prev).setEnabled(true);
+                    findViewById(R.id.next).setEnabled(true);
+                }
+                else if(mPage==1 && totalPages>1)
+                {
+                    findViewById(R.id.prev).setEnabled(false);
+                    findViewById(R.id.next).setEnabled(true);
+                }
+                else if(mPage==1 && totalPages==1)
+                {
+                    findViewById(R.id.prev).setEnabled(false);
+                    findViewById(R.id.next).setEnabled(false);
+                }
                 if(mList_Grid_View == 1)
                 {
                     mListAdapter.notifyDataSetChanged();
@@ -222,18 +217,36 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         switch(id)
         {
             case R.id.get_top_rated:
-                URL = PopularMovies.BASE_URL + getString(R.string.top_rated) +PopularMovies.API_KEY;
+                mPage = 1;
+                URL = PopularMovies.BASE_URL + getString(R.string.top_rated) +PopularMovies.API_KEY + PopularMovies.LANG_PAGE;
                 fetchMovies(URL);
                 break;
             case R.id.get_popular:
-                URL = PopularMovies.BASE_URL + getString(R.string.popular) +PopularMovies.API_KEY;
+                mPage = 1;
+                URL = PopularMovies.BASE_URL + getString(R.string.popular) +PopularMovies.API_KEY + PopularMovies.LANG_PAGE;
                 fetchMovies(URL);
                 break;
             case R.id.get_upcoming:
-                URL = PopularMovies.BASE_URL + getString(R.string.upcoming) +PopularMovies.API_KEY;
+                mPage = 1;
+                URL = PopularMovies.BASE_URL + getString(R.string.upcoming) +PopularMovies.API_KEY + PopularMovies.LANG_PAGE;
                 fetchMovies(URL);
                 break;
+            case R.id.prev:
+                if(mPage>1) {
+                    mPage -= 1;
+                    fetchMovies(URL);
+                }
+                break;
 
+            case R.id.next:
+                if(mPage<totalPages) {
+                    mPage += 1;
+                    fetchMovies(URL);
+                }
+                break;
+            case R.id.refresh:
+                fetchMovies(URL);
+                break;
         }
 
         return super.onOptionsItemSelected(item);

@@ -20,4 +20,20 @@
         android:orderInCategory="100"
         android:title="Get Upcoming"
         app:showAsAction="never"/>
+
+        <item
+            android:id="@+id/prev"
+            app:showAsAction="always"
+            android:title="Prev"></item>
+
+        <item
+            android:id="@+id/next"
+            app:showAsAction="always"
+            android:title="Next"></item>
+
+    <item
+        android:id="@+id/refresh"
+        android:title="Refresh"
+        app:showAsAction="always"
+        android:icon="@drawable/ic_action_refresh"></item>
 </menu>

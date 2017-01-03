@@ -1,5 +1,6 @@
 package com.iitism.ritik.popularmovies;
 
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.preference.TwoStatePreference;
 import android.support.v4.util.Pair;
@@ -10,7 +11,9 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -43,6 +46,8 @@ public class Movie_Details extends AppCompatActivity {
     private TextView mReleaseDate;
     private TextView mUserRating;
     private List<Trailer> tList;
+    private String mMovieId = null;
+    private ProgressDialog mPd;
 
     private ListView trailerList;
     private ArrayAdapter mTrailerAdapter;
@@ -55,7 +60,8 @@ public class Movie_Details extends AppCompatActivity {
         actionBar.setDisplayHomeAsUpEnabled(true);
 
         Intent intent = getIntent();
-        String movieId = intent.getStringExtra("Movie_id");
+        mMovieId = intent.getStringExtra("Movie_id");
+        mPd = new ProgressDialog(this);
 
         mMovie_image = (ImageView) findViewById(R.id.movie_image);
         mTitle = (TextView) findViewById(R.id.movie_title);
@@ -79,15 +85,20 @@ public class Movie_Details extends AppCompatActivity {
             }
         });
 
-        getMovieDetail(movieId);
+        getMovieDetail(mMovieId);
 
     }
 
     public void getMovieDetail(String movie_id)
     {
+        mPd.setMessage("Loading...");
+        mPd.setCancelable(false);
+        mPd.setCanceledOnTouchOutside(false);
+        mPd.show();
         StringRequest stringRequest = new StringRequest(BASE_URL + movie_id + API_KEY, new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
+                mPd.cancel();
                 try {
                     showDetailView(response);
                 } catch (JSONException e) {
@@ -123,6 +134,33 @@ public class Movie_Details extends AppCompatActivity {
         JSONObject jsonObject1 = jsonObject.getJSONObject("videos");
         JSONArray jsonArray1 = jsonObject1.getJSONArray("results");
 
+        String poster_url = "http://image.tmdb.org/t/p/w780"+ poster_path;
+
+        Picasso.with(this).load(poster_url).error(R.drawable.error)
+                .placeholder(R.drawable.placeholder)
+                .into(mMovie_image, new com.squareup.picasso.Callback() {
+            @Override
+            public void onSuccess() {
+                findViewById(R.id.image_layout).setVisibility(View.VISIBLE);
+            }
+
+            @Override
+            public void onError() {
+                findViewById(R.id.image_layout).setVisibility(View.VISIBLE);
+            }
+        });
+
+        findViewById(R.id.title_layout).setVisibility(View.VISIBLE);
+        mTitle.setText(Title);
+        getSupportActionBar().setTitle(mTitle.getText());
+        findViewById(R.id.overview_layout).setVisibility(View.VISIBLE);
+        mOverview.setText(overview);
+        findViewById(R.id.releaseDate_layout).setVisibility(View.VISIBLE);
+        mReleaseDate.setText(releaseDate);
+        findViewById(R.id.user_rating_layout).setVisibility(View.VISIBLE);
+        mUserRating.setText(vote_average);
+        findViewById(R.id.trailer_title).setVisibility(View.VISIBLE);
+        findViewById(R.id.user_rating_layout).setVisibility(View.VISIBLE);
 
         for(int i=0;i<jsonArray1.length();i++)
         {
@@ -132,12 +170,22 @@ public class Movie_Details extends AppCompatActivity {
             mTrailerAdapter.notifyDataSetChanged();
         }
 
-        String poster_url = "http://image.tmdb.org/t/p/w780"+ poster_path;
-        Picasso.with(this).load(poster_url).into(mMovie_image);
+        findViewById(R.id.card_trailer_list).setVisibility(View.VISIBLE);
+        findViewById(R.id.seeReview).setVisibility(View.VISIBLE);
+    }
 
-        mTitle.setText(Title);
-        mOverview.setText(overview);
-        mReleaseDate.setText(releaseDate);
-        mUserRating.setText(vote_average);
+    public void OnClickSeeReview(View v)
+    {
+        if(!mTitle.getText().toString().isEmpty() && mMovieId!=null) {
+            Intent intent = new Intent(this, ReviewActivity.class);
+            intent.putExtra("movieId", mMovieId);
+            intent.putExtra("movie_name", mTitle.getText());
+            startActivity(intent);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
     }
 }

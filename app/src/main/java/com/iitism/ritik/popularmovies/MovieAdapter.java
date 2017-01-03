@@ -64,8 +64,7 @@ public class MovieAdapter extends ArrayAdapter<Movie> {
         movieHolder.txtTitle.setText(movie.title);
         movieHolder.id.setText(movie.id);
         String poster_url = "http://image.tmdb.org/t/p/w342"+movie.posterPath;
-        //Toast.makeText(getContext(),poster_url,Toast.LENGTH_SHORT).show();
-        Picasso.with(context).load(poster_url).into(movieHolder.icon);
+        Picasso.with(context).load(poster_url).placeholder(R.drawable.placeholder).error(R.drawable.error).into(movieHolder.icon);
 
         return view;
     }

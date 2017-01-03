@@ -23,11 +23,15 @@
         <activity
             android:name=".Movie_Details"
             android:label="Movie Info"
-            android:parentActivityName=".MainActivity"/>
+            android:parentActivityName=".MainActivity" >
+
         <meta-data
             android:name="android.support.PARENT_ACTIVITY"
             android:value="com.iitism.ritik.popularmovies.MainActivity" />
-        <activity android:name=".YoutubePlayer"
+        </activity>
+
+        <activity
+            android:name=".YoutubePlayer"
             android:label="Trailer"
             android:parentActivityName=".Movie_Details">
             <meta-data
@@ -35,6 +39,13 @@
                 android:value="com.iitism.ritik.popularmovies.Movie_Details" />
         </activity>
 
+        <activity android:name=".ReviewActivity"
+            android:label="Reviews"
+            android:parentActivityName=".Movie_Details">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.iitism.ritik.popularmovies.Movie_Details" />
+        </activity>
     </application>
 
 </manifest>
