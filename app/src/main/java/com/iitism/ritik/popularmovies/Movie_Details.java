@@ -7,6 +7,9 @@ import android.support.v4.util.Pair;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -48,6 +51,8 @@ public class Movie_Details extends AppCompatActivity {
     private List<Trailer> tList;
     private String mMovieId = null;
     private ProgressDialog mPd;
+    private MenuItem menuItem;
+    private Menu menu;
 
     private ListView trailerList;
     private ArrayAdapter mTrailerAdapter;
@@ -150,6 +155,14 @@ public class Movie_Details extends AppCompatActivity {
             }
         });
 
+        if(menuItem.isChecked()==false)
+        {
+            menuItem.setIcon(R.drawable.ic_favourite_unset);
+        }
+        else
+        {
+            menuItem.setIcon(R.drawable.ic_favourite_set);
+        }
         findViewById(R.id.title_layout).setVisibility(View.VISIBLE);
         mTitle.setText(Title);
         getSupportActionBar().setTitle(mTitle.getText());
@@ -174,6 +187,41 @@ public class Movie_Details extends AppCompatActivity {
         findViewById(R.id.seeReview).setVisibility(View.VISIBLE);
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_detail,menu);
+
+        this.menu = menu;
+        menuItem = this.menu.findItem(R.id.favourite);
+        if(menuItem.isChecked())
+            menuItem.setIcon(R.drawable.ic_favourite_set);
+        else
+            menuItem.setIcon(R.drawable.ic_favourite_unset);
+
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        if(id==R.id.favourite)
+        {
+            if(item.isChecked())
+            {
+                item.setChecked(false);
+                item.setIcon(R.drawable.ic_favourite_unset);
+            }
+            else
+            {
+                item.setChecked(true);
+                item.setIcon(R.drawable.ic_favourite_set);
+            }
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
     public void OnClickSeeReview(View v)
     {
         if(!mTitle.getText().toString().isEmpty() && mMovieId!=null) {
@@ -181,6 +229,20 @@ public class Movie_Details extends AppCompatActivity {
             intent.putExtra("movieId", mMovieId);
             intent.putExtra("movie_name", mTitle.getText());
             startActivity(intent);
+        }
+    }
+
+    public void setFavourite(MenuItem menuItem)
+    {
+        if(menuItem.isChecked())
+        {
+            menuItem.setChecked(false);
+            menuItem.setIcon(R.drawable.ic_favourite_unset);
+        }
+        else
+        {
+            menuItem.setChecked(true);
+            menuItem.setIcon(R.drawable.ic_favourite_set);
         }
     }
 
