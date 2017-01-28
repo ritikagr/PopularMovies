@@ -3,6 +3,7 @@ package com.iitism.ritik.popularmovies;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.preference.TwoStatePreference;
+import android.support.v4.app.NavUtils;
 import android.support.v4.util.Pair;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
@@ -38,6 +39,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import io.realm.Realm;
+import io.realm.RealmList;
+import io.realm.RealmObject;
+
 public class Movie_Details extends AppCompatActivity {
 
     private static final String BASE_URL = "https://api.themoviedb.org/3/movie/";
@@ -53,6 +58,8 @@ public class Movie_Details extends AppCompatActivity {
     private ProgressDialog mPd;
     private MenuItem menuItem;
     private Menu menu;
+    private Realm mRealm;
+    private String Title,popularity,poster_path,vote_average,overview,releaseDate;
 
     private ListView trailerList;
     private ArrayAdapter mTrailerAdapter;
@@ -63,6 +70,8 @@ public class Movie_Details extends AppCompatActivity {
 
         ActionBar actionBar = getSupportActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
+
+        mRealm = Realm.getDefaultInstance();
 
         Intent intent = getIntent();
         mMovieId = intent.getStringExtra("Movie_id");
@@ -83,7 +92,7 @@ public class Movie_Details extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Trailer tr = (Trailer) parent.getItemAtPosition(position);
-                String key = tr.Tkey;
+                String key = tr.getTkey();
                 Intent youtubeIntent = new Intent(getApplicationContext(),YoutubePlayer.class);
                 youtubeIntent.putExtra("KEY",key);
                 startActivity(youtubeIntent);
@@ -100,91 +109,118 @@ public class Movie_Details extends AppCompatActivity {
         mPd.setCancelable(false);
         mPd.setCanceledOnTouchOutside(false);
         mPd.show();
-        StringRequest stringRequest = new StringRequest(BASE_URL + movie_id + API_KEY, new Response.Listener<String>() {
-            @Override
-            public void onResponse(String response) {
-                mPd.cancel();
-                try {
-                    showDetailView(response);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            }
-        }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                Toast.makeText(Movie_Details.this,error.getMessage(),Toast.LENGTH_SHORT).show();
-            }
-        });
 
-        RequestQueue requestQueue = Volley.newRequestQueue(this);
-        requestQueue.add(stringRequest);
+        long cnt = mRealm.where(Movie.class).equalTo("id",mMovieId).count();
+        if(cnt==1)
+        {
+            showDetailsFavourite();
+            mPd.cancel();
+        }
+        else {
+            StringRequest stringRequest = new StringRequest(BASE_URL + movie_id + API_KEY, new Response.Listener<String>() {
+                @Override
+                public void onResponse(String response) {
+                    mPd.cancel();
+                    try {
+                        showDetailView(response);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }, new Response.ErrorListener() {
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    Toast.makeText(Movie_Details.this, error.getMessage(), Toast.LENGTH_SHORT).show();
+                }
+            });
+
+            RequestQueue requestQueue = Volley.newRequestQueue(this);
+            requestQueue.add(stringRequest);
+        }
+    }
+
+    public void showDetailsFavourite()
+    {
+        Movie movie = mRealm.where(Movie.class).equalTo("id", mMovieId).findFirst();
+
+        setLayoutAttributes(movie.getTitle(),movie.getPopularity(),movie.getOverView(),
+                movie.getPosterPath(),movie.getReleaseDate(),movie.getVoteAvg());
+
+        RealmList<Trailer> realmList = movie.getTrailerList();
+        for (Trailer trailer: realmList) {
+            tList.add(trailer);
+        }
+
+        mTrailerAdapter.notifyDataSetChanged();
+
+        findViewById(R.id.card_trailer_list).setVisibility(View.VISIBLE);
+        findViewById(R.id.seeReview).setVisibility(View.VISIBLE);
     }
 
     public void showDetailView(String response) throws JSONException {
         JSONObject jsonObject = new JSONObject(response);
-        String Title = jsonObject.getString("original_title");
-        String poularity = jsonObject.getString("popularity");
-        String overview = jsonObject.getString("overview");
-        String poster_path = jsonObject.getString("poster_path");
-        String releaseDate = jsonObject.getString("release_date");
-        String runtime = jsonObject.getString("runtime");
-        JSONArray jsonArray = jsonObject.getJSONArray("spoken_languages");
-        String language = jsonArray.getJSONObject(0).getString("name");
 
-        String status = jsonObject.getString("status");
-        String tagline = jsonObject.getString("tagline");
-        String vote_average = jsonObject.getString("vote_average");
+        setLayoutAttributes(jsonObject.getString("original_title"), jsonObject.getString("popularity"),
+                jsonObject.getString("overview"), jsonObject.getString("poster_path"),
+                jsonObject.getString("release_date"), jsonObject.getString("vote_average"));
 
         JSONObject jsonObject1 = jsonObject.getJSONObject("videos");
         JSONArray jsonArray1 = jsonObject1.getJSONArray("results");
-
-        String poster_url = "http://image.tmdb.org/t/p/w780"+ poster_path;
-
-        Picasso.with(this).load(poster_url).error(R.drawable.error)
-                .placeholder(R.drawable.placeholder)
-                .into(mMovie_image, new com.squareup.picasso.Callback() {
-            @Override
-            public void onSuccess() {
-                findViewById(R.id.image_layout).setVisibility(View.VISIBLE);
-            }
-
-            @Override
-            public void onError() {
-                findViewById(R.id.image_layout).setVisibility(View.VISIBLE);
-            }
-        });
-
-        if(menuItem.isChecked()==false)
-        {
-            menuItem.setIcon(R.drawable.ic_favourite_unset);
-        }
-        else
-        {
-            menuItem.setIcon(R.drawable.ic_favourite_set);
-        }
-        findViewById(R.id.title_layout).setVisibility(View.VISIBLE);
-        mTitle.setText(Title);
-        getSupportActionBar().setTitle(mTitle.getText());
-        findViewById(R.id.overview_layout).setVisibility(View.VISIBLE);
-        mOverview.setText(overview);
-        findViewById(R.id.releaseDate_layout).setVisibility(View.VISIBLE);
-        mReleaseDate.setText(releaseDate);
-        findViewById(R.id.user_rating_layout).setVisibility(View.VISIBLE);
-        mUserRating.setText(vote_average);
-        findViewById(R.id.trailer_title).setVisibility(View.VISIBLE);
-        findViewById(R.id.user_rating_layout).setVisibility(View.VISIBLE);
 
         for(int i=0;i<jsonArray1.length();i++)
         {
             JSONObject j = jsonArray1.getJSONObject(i);
             Trailer t = new Trailer(j.getString("name"),j.getString("key"));
             tList.add(t);
-            mTrailerAdapter.notifyDataSetChanged();
         }
+
+        mTrailerAdapter.notifyDataSetChanged();
 
         findViewById(R.id.card_trailer_list).setVisibility(View.VISIBLE);
         findViewById(R.id.seeReview).setVisibility(View.VISIBLE);
+    }
+
+    public void loadPoster(String poster_path)
+    {
+        String poster_url = "http://image.tmdb.org/t/p/w780"+ poster_path;
+
+        Picasso.with(this).load(poster_url).error(R.drawable.error)
+                .placeholder(R.drawable.placeholder)
+                .into(mMovie_image, new com.squareup.picasso.Callback() {
+                    @Override
+                    public void onSuccess() {
+                        findViewById(R.id.image_layout).setVisibility(View.VISIBLE);
+                    }
+
+                    @Override
+                    public void onError() {
+                        findViewById(R.id.image_layout).setVisibility(View.VISIBLE);
+                    }
+                });
+    }
+
+    public void setLayoutAttributes(String title, String popularity, String overview, String posterpath, String releasedate, String voteavg)
+    {
+        this.Title = title;
+        this.popularity = popularity;
+        this.overview = overview;
+        this.poster_path = posterpath;
+        this.releaseDate = releasedate;
+        this.vote_average = voteavg;
+
+        findViewById(R.id.title_layout).setVisibility(View.VISIBLE);
+        mTitle.setText(title);
+        getSupportActionBar().setTitle(mTitle.getText());
+        findViewById(R.id.overview_layout).setVisibility(View.VISIBLE);
+        mOverview.setText(overview);
+        findViewById(R.id.releaseDate_layout).setVisibility(View.VISIBLE);
+        mReleaseDate.setText(releasedate);
+        findViewById(R.id.user_rating_layout).setVisibility(View.VISIBLE);
+        mUserRating.setText(voteavg);
+        findViewById(R.id.trailer_title).setVisibility(View.VISIBLE);
+        findViewById(R.id.user_rating_layout).setVisibility(View.VISIBLE);
+
+        loadPoster(poster_path);
     }
 
     @Override
@@ -193,10 +229,15 @@ public class Movie_Details extends AppCompatActivity {
 
         this.menu = menu;
         menuItem = this.menu.findItem(R.id.favourite);
-        if(menuItem.isChecked())
+        int cnt = (int) mRealm.where(Movie.class).equalTo("id",mMovieId).count();
+        if(cnt>0) {
+            menuItem.setChecked(true);
             menuItem.setIcon(R.drawable.ic_favourite_set);
-        else
+        }
+        else {
+            menuItem.setChecked(false);
             menuItem.setIcon(R.drawable.ic_favourite_unset);
+        }
 
         return true;
     }
@@ -207,16 +248,7 @@ public class Movie_Details extends AppCompatActivity {
 
         if(id==R.id.favourite)
         {
-            if(item.isChecked())
-            {
-                item.setChecked(false);
-                item.setIcon(R.drawable.ic_favourite_unset);
-            }
-            else
-            {
-                item.setChecked(true);
-                item.setIcon(R.drawable.ic_favourite_set);
-            }
+            setFavourite(item);
         }
 
         return super.onOptionsItemSelected(item);
@@ -236,11 +268,48 @@ public class Movie_Details extends AppCompatActivity {
     {
         if(menuItem.isChecked())
         {
+            mRealm.executeTransaction(new Realm.Transaction() {
+                @Override
+                public void execute(Realm realm) {
+                    Movie movie = realm.where(Movie.class).equalTo("id",mMovieId).findFirst();
+                    if(movie!=null)
+                    movie.deleteFromRealm();
+                }
+            });
             menuItem.setChecked(false);
             menuItem.setIcon(R.drawable.ic_favourite_unset);
         }
         else
         {
+            mRealm.executeTransaction(new Realm.Transaction() {
+                @Override
+                public void execute(Realm realm) {
+                    Movie movie = realm.createObject(Movie.class);
+                    movie.setId(mMovieId);
+                    movie.setPosterPath(poster_path);
+                    movie.setTitle(Title);
+                    movie.setOverView(overview);
+                    movie.setReleaseDate(releaseDate);
+                    movie.setPopularity(popularity);
+                    movie.setVoteAvg(vote_average);
+                    RealmList<Trailer> realmList = new RealmList<Trailer>(tList.toArray(new Trailer[tList.size()]));
+
+                    if(!realmList.isManaged()) {
+                        RealmList managedList = new RealmList<>();
+                        for (Trailer trailer : realmList) {
+                            if(trailer.isManaged())
+                                managedList.add(trailer);
+                            else
+                            {
+                                managedList.add(realm.copyToRealm(trailer));
+                            }
+                        }
+                        realmList = managedList;
+                    }
+                    movie.setTrailerList(realmList);
+                    showToast("Movie: "+mTitle.getText()+" added to Favourites.");
+                }
+            });
             menuItem.setChecked(true);
             menuItem.setIcon(R.drawable.ic_favourite_set);
         }
@@ -249,5 +318,10 @@ public class Movie_Details extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
+    }
+
+    public void showToast(String msg)
+    {
+        Toast.makeText(Movie_Details.this, msg, Toast.LENGTH_SHORT).show();
     }
 }

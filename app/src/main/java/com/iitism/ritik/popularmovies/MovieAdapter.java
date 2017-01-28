@@ -61,9 +61,9 @@ public class MovieAdapter extends ArrayAdapter<Movie> {
 
         Movie movie = data.get(position);
 
-        movieHolder.txtTitle.setText(movie.title);
-        movieHolder.id.setText(movie.id);
-        String poster_url = "http://image.tmdb.org/t/p/w342"+movie.posterPath;
+        movieHolder.txtTitle.setText(movie.getTitle());
+        movieHolder.id.setText(movie.getId());
+        String poster_url = "http://image.tmdb.org/t/p/w342"+movie.getPosterPath();
         Picasso.with(context).load(poster_url).placeholder(R.drawable.placeholder).error(R.drawable.error).into(movieHolder.icon);
 
         return view;

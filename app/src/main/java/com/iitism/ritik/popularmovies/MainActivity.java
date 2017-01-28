@@ -4,6 +4,7 @@ import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.TabLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -30,6 +31,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import io.realm.MovieRealmProxy;
+import io.realm.Realm;
+import io.realm.RealmList;
+import io.realm.RealmResults;
+
 public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener{
 
     private List<Movie> movieList=null;
@@ -41,6 +47,11 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     private int mPage = 1;
     private int totalPages = 0;
     private ProgressDialog mPd;
+    private MenuItem mPrevMenuItem;
+    private MenuItem mNextMenuItem;
+    private Menu mMenu;
+    private Realm mRealm;
+    private FloatingActionButton fab;
 
     //list=1 or grid=2;
     private int mList_Grid_View = 2;
@@ -55,6 +66,8 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         final Movie movie[] = new Movie[]{
         };
 
+        mRealm = Realm.getDefaultInstance();
+
         URL = PopularMovies.BASE_URL + getString(R.string.popular) + PopularMovies.API_KEY + PopularMovies.LANG_PAGE;
 
         movieList = Collections.synchronizedList(new ArrayList<Movie>());
@@ -65,7 +78,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
         this.setAdapters(mList_Grid_View);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -85,7 +98,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Movie movie1 = (Movie) parent.getItemAtPosition(position);
-                String movie_id = movie1.id;
+                String movie_id = movie1.getId();
                 //Toast.makeText(MainActivity.this,movie_id,Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(getApplicationContext(),Movie_Details.class);
                 intent.putExtra("Movie_id",movie_id);
@@ -98,7 +111,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Movie movie1 = (Movie) parent.getItemAtPosition(position);
-                String movie_id = movie1.id;
+                String movie_id = movie1.getId();
                 //Toast.makeText(MainActivity.this,movie_id,Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(getApplicationContext(),Movie_Details.class);
                 intent.putExtra("Movie_id",movie_id);
@@ -124,6 +137,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             findViewById(R.id.content_main_grid).setVisibility(View.VISIBLE);
             mGridview.setAdapter(mGridAdapter);
         }
+        if(getSupportActionBar().getTitle()=="Favourite Movies")
+            fetchFavouriteMovies();
+        else
         fetchMovies(URL);
     }
 
@@ -174,18 +190,18 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 movieList.add(new Movie(poster_path,title,overView,releaseDate,popularity,voteAvg,id));
                 if(mPage>1 && mPage<totalPages)
                 {
-                    findViewById(R.id.prev).setEnabled(true);
-                    findViewById(R.id.next).setEnabled(true);
+                    mPrevMenuItem.setEnabled(true);
+                    mNextMenuItem.setEnabled(true);
                 }
                 else if(mPage==1 && totalPages>1)
                 {
-                    findViewById(R.id.prev).setEnabled(false);
-                    findViewById(R.id.next).setEnabled(true);
+                    mPrevMenuItem.setEnabled(false);
+                    mNextMenuItem.setEnabled(true);
                 }
                 else if(mPage==1 && totalPages==1)
                 {
-                    findViewById(R.id.prev).setEnabled(false);
-                    findViewById(R.id.next).setEnabled(false);
+                    mPrevMenuItem.setEnabled(false);
+                    mPrevMenuItem.setEnabled(false);
                 }
                 if(mList_Grid_View == 1)
                 {
@@ -203,10 +219,39 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         }
     }
 
+    public void fetchFavouriteMovies()
+    {
+        mRealm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                RealmResults<Movie> movieRealmResult = realm.where(Movie.class).findAll();
+
+                movieList.clear();
+
+                for (Movie movie: movieRealmResult) {
+                    movieList.add(new Movie(movie.getPosterPath(),movie.getTitle(),movie.getOverView(),
+                            movie.getReleaseDate(),movie.getPopularity(),movie.getVoteAvg(),movie.getId()));
+
+                    if(mList_Grid_View == 1)
+                    {
+                        mListAdapter.notifyDataSetChanged();
+                    }
+                    else
+                    {
+                        mGridAdapter.notifyDataSetChanged();
+                    }
+                }
+            }
+        });
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
+
+        this.mMenu = menu;
+        mPrevMenuItem = this.mMenu.findItem(R.id.prev);
+        mNextMenuItem = this.mMenu.findItem(R.id.next);
         return true;
     }
 
@@ -219,17 +264,28 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             case R.id.get_top_rated:
                 mPage = 1;
                 URL = PopularMovies.BASE_URL + getString(R.string.top_rated) +PopularMovies.API_KEY + PopularMovies.LANG_PAGE;
+                getSupportActionBar().setTitle("Top Rated Movies");
+                showPrevNextMenu();
                 fetchMovies(URL);
                 break;
             case R.id.get_popular:
                 mPage = 1;
                 URL = PopularMovies.BASE_URL + getString(R.string.popular) +PopularMovies.API_KEY + PopularMovies.LANG_PAGE;
+                getSupportActionBar().setTitle("Popular Movies");
+                showPrevNextMenu();
                 fetchMovies(URL);
                 break;
             case R.id.get_upcoming:
                 mPage = 1;
                 URL = PopularMovies.BASE_URL + getString(R.string.upcoming) +PopularMovies.API_KEY + PopularMovies.LANG_PAGE;
+                getSupportActionBar().setTitle("Upcoming Movies");
+                showPrevNextMenu();
                 fetchMovies(URL);
+                break;
+            case R.id.get_favourite:
+                getSupportActionBar().setTitle("Favourite Movies");
+                hidePrevNextMenu();
+                fetchFavouriteMovies();
                 break;
             case R.id.prev:
                 if(mPage>1) {
@@ -245,6 +301,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 }
                 break;
             case R.id.refresh:
+                if(getSupportActionBar().getTitle()=="Favourite Movies")
+                    fetchFavouriteMovies();
+                else
                 fetchMovies(URL);
                 break;
         }
@@ -252,8 +311,30 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         return super.onOptionsItemSelected(item);
     }
 
+    public void showPrevNextMenu()
+    {
+        mPrevMenuItem.setVisible(true);
+        mNextMenuItem.setVisible(true);
+    }
+
+    public void hidePrevNextMenu()
+    {
+        mPrevMenuItem.setVisible(false);
+        mNextMenuItem.setVisible(false);
+    }
+
+
     @Override
     public void onRefresh() {
         fetchMovies(URL);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if(getSupportActionBar().getTitle()=="Favourite Movies")
+            fetchFavouriteMovies();
+        else
+            fetchMovies(URL);
     }
 }

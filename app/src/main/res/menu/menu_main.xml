@@ -21,15 +21,21 @@
         android:title="Get Upcoming"
         app:showAsAction="never"/>
 
-        <item
-            android:id="@+id/prev"
-            app:showAsAction="always"
-            android:title="Prev"></item>
+    <item
+        android:id="@+id/get_favourite"
+        android:orderInCategory="100"
+        app:showAsAction="never"
+        android:title="Get Favourite"></item>
 
-        <item
-            android:id="@+id/next"
-            app:showAsAction="always"
-            android:title="Next"></item>
+    <item
+        android:id="@+id/prev"
+        app:showAsAction="always"
+        android:title="Prev"></item>
+
+    <item
+        android:id="@+id/next"
+        app:showAsAction="always"
+        android:title="Next"></item>
 
     <item
         android:id="@+id/refresh"

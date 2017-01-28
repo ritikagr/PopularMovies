@@ -49,8 +49,8 @@ public class TrailerAdapter extends ArrayAdapter {
         }
 
         Trailer trailer = tList.get(position);
-        trailerHolder.v_name.setText(trailer.Tname);
-        trailerHolder.v_key.setText(trailer.Tkey);
+        trailerHolder.v_name.setText(trailer.getTname());
+        trailerHolder.v_key.setText(trailer.getTkey());
 
         return view;
     }

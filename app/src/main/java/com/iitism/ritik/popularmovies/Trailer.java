@@ -1,12 +1,14 @@
 package com.iitism.ritik.popularmovies;
 
+import io.realm.RealmObject;
+
 /**
  * Created by Ritik on 02-10-2016.
  */
-public class Trailer {
+public class Trailer extends RealmObject{
 
-    public String Tname;
-    public String Tkey;
+    private String Tname;
+    private String Tkey;
 
     public Trailer()
     {
@@ -17,5 +19,21 @@ public class Trailer {
     {
         this.Tname=name;
         this.Tkey=key;
+    }
+
+    public String getTname() {
+        return Tname;
+    }
+
+    public void setTname(String tname) {
+        Tname = tname;
+    }
+
+    public String getTkey() {
+        return Tkey;
+    }
+
+    public void setTkey(String tkey) {
+        Tkey = tkey;
     }
 }

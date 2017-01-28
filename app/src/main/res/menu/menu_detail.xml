@@ -10,7 +10,6 @@
         android:title="Favourite"
         app:showAsAction="always"
         android:icon="@drawable/ic_favourite_unset"
-        android:enabled="true"
-        android:checked="true"></item>
+        android:enabled="true"></item>
 
 </menu>
