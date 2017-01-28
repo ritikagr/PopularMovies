@@ -49,7 +49,8 @@ public class ReviewActivity extends AppCompatActivity {
         mPd = new ProgressDialog(this);
 
         ActionBar actionBar = getSupportActionBar();
-        actionBar.setTitle(movieName);
+        actionBar.setTitle(movieName+": Review");
+        actionBar.setDisplayHomeAsUpEnabled(false);
         mPrevBtn = (Button) findViewById(R.id.prevBtn);
         mNextBtn = (Button) findViewById(R.id.nextBtn);
         mBtnLayout = (LinearLayout) findViewById(R.id.btnLayout);
