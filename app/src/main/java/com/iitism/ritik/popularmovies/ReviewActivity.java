@@ -49,7 +49,6 @@ public class ReviewActivity extends AppCompatActivity {
         mPd = new ProgressDialog(this);
 
         ActionBar actionBar = getSupportActionBar();
-        actionBar.setDisplayHomeAsUpEnabled(true);
         actionBar.setTitle(movieName);
         mPrevBtn = (Button) findViewById(R.id.prevBtn);
         mNextBtn = (Button) findViewById(R.id.nextBtn);
@@ -112,18 +111,21 @@ public class ReviewActivity extends AppCompatActivity {
                     mNextBtn.setEnabled(false);
                     mPrevBtn.setEnabled(true);
                 }
-
-                if(mPage==1 && reviewArrayIndex==0)
+                else if(mPage==1 && reviewArrayIndex==0)
                 {
                     //disable prev button
                     mPrevBtn.setEnabled(false);
                     mNextBtn.setEnabled(true);
                 }
-
-                if(mPage==1 && mPage==totalPages && reviewArrayIndex==0 && reviewArrayIndex==totalReviews-1)
+                else if(mPage==1 && mPage==totalPages && reviewArrayIndex==0 && reviewArrayIndex==totalReviews-1)
                 {
                     mPrevBtn.setEnabled(false);
                     mNextBtn.setEnabled(false);
+                }
+                else
+                {
+                    mPrevBtn.setEnabled(true);
+                    mNextBtn.setEnabled(true);
                 }
 
                 mAuthor.setVisibility(View.VISIBLE);
